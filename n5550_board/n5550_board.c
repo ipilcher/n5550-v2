@@ -3,7 +3,7 @@
 /*
  * Thecus N5550 hardware setup
  *
- * Copyright 2013, 2021-2023 Ian Pilcher <arequipeno@gmail.com>
+ * Copyright 2013, 2021-2024 Ian Pilcher <arequipeno@gmail.com>
  */
 
 #include <linux/platform_device.h>
@@ -70,30 +70,27 @@ static const unsigned __initdata n5550_ich_gpio_led_offsets[5] = {
 	0, 2, 3, 4, 5,
 };
 
-static int __init n5550_match_ich_gpiochip(struct gpio_chip *const gc,
-				    __attribute__((unused)) void *data)
-{
-	/* Can gc->label be NULL? */
-	return (gc->label != NULL) && !strcmp(gc->label, "gpio_ich");
-}
-
 static int __init n5550_get_ich_gpiobase(void)
 {
-	const struct gpio_chip *gc;
+	struct gpio_device *gdev;
+	int base;
 
-	if ((gc = gpiochip_find(NULL, n5550_match_ich_gpiochip)) == NULL) {
-		pr_warn("Couldn't find ICH GPIO chip\n");
+	if ((gdev = gpio_device_find_by_label("gpio_ich")) == NULL) {
+		pr_warn("Couldn't find ICH GPIO device\n");
 		return -ENODEV;
 	}
 
-	if (gc->base < 0) {
-		pr_warn("ICH GPIO chip has invalid base (%d)\n", gc->base);
+	base = gpio_device_get_base(gdev);
+	gpio_device_put(gdev);
+
+	if (base < 0) {
+		pr_warn("ICH GPIO device has invalid base (%d)\n", base);
 		return -EINVAL;
 	}
 
-	pr_debug("n5550_board: ICH GPIO base: %d\n", gc->base);
+	pr_debug("n5550_board: ICH GPIO base: %d\n", base);
 
-	return gc->base;
+	return base;
 }
 
 static int __init n5550_ich_gpio_led_setup(void)
